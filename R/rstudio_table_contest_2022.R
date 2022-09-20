@@ -4,7 +4,7 @@
 # Load packages ----
 
 library(tidyverse)
-library(datefixR)
+# library(datefixR)
 library(gt)
 
 # Creating the dataset ----
@@ -17,6 +17,31 @@ tables <- rvest::html_nodes(webpage, "table.wikitable") %>%
   rvest::html_table(header = TRUE, na.strings = c(NA, ""), convert = TRUE)
 
 raw_tbl <- tables[[6]]
+
+rm(tables, webpage, url)
+
+# Cleaning the dataset - column names ----
+
+d1 <- raw_tbl %>% 
+  janitor::clean_names() %>% 
+  dplyr::select(mission:crew,
+                launch_vehicle = launch_vehicle_b,
+                everything())
+
+# Cleaning the dataset - launch date + time ----
+
+d2 <- d1 %>% 
+  dplyr::mutate(launch_date = str_replace(launch_date, " \\s*\\([^\\)]+\\)", "")) %>% 
+  tidyr::separate(launch_date,
+                  into = c("launch_date", "launch_time", "launch_site"),
+                  sep = "\n") %>% 
+  dplyr::mutate(launch_site = case_when(mission == "Apollo 1" ~ launch_time,
+                                        TRUE ~ launch_site),
+                launch_time = case_when(mission == "Apollo 1" ~ NA_character_,
+                                        TRUE ~ launch_time)) %>% 
+  dplyr::mutate(launch_date = lubridate::mdy(launch_date),
+                launch_time = lubridate::hm(launch_time))
+
 
 clean_tbl <- raw_tbl %>% 
   janitor::clean_names() %>% 
