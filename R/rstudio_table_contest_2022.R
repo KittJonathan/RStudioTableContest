@@ -42,6 +42,10 @@ d2 <- d1 %>%
   dplyr::mutate(launch_date = lubridate::mdy(launch_date),
                 launch_time = lubridate::hm(launch_time))
 
+# Cleaning the dataset - crew ----
+
+
+
 
 clean_tbl <- raw_tbl %>% 
   janitor::clean_names() %>% 
