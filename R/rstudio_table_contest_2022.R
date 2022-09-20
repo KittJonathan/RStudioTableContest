@@ -44,47 +44,41 @@ d2 <- d1 %>%
 
 # Cleaning the dataset - crew ----
 
+d3 <- d2 %>% 
+  dplyr::mutate(crew = str_replace(crew, " \\s*\\([^\\)]+\\)", ""),
+                crew = gsub('"', "", crew),
+                crew = str_remove(crew, " Buzz")) %>% 
+  dplyr::mutate(crew = stringr::str_replace_all(crew, fixed(" "), "")) %>% 
+  dplyr::mutate(crew = stringr::str_replace_all(crew, "([[:upper:]])", " \\1")) %>% 
+  dplyr::mutate(crew = stringr::str_trim(crew)) %>% 
+  dplyr::mutate(commander = case_when(mission %in% c("Apollo 9", "Apollo 10") ~ stringr::word(crew, 1L, 3L),
+                                      TRUE ~ stringr::word(crew, 1L, 2L)),
+                cm_pilot = case_when(mission == "Apollo 7" ~ stringr::word(crew, 3L, 5L),
+                                                 mission == "Apollo 12" ~stringr::word(crew, 3L, 6L),
+                                                 mission %in% c("Apollo 9", "Apollo 10") ~ stringr::word(crew, 4L, 5L),
+                                                 TRUE ~ stringr::word(crew, 3L, 4L)),
+                lm_pilot = case_when(mission == "Apollo 1" ~ stringr::word(crew, 5L, 7L),
+                                               mission == "Apollo 12" ~ stringr::word(crew, 7L, 8L),
+                                               mission %in% c("Apollo 7", "Apollo 9", "Apollo 10") ~ stringr::word(crew, 6L, 7L),
+                                               TRUE ~ stringr::word(crew, 5L, 6L))) %>% 
+  dplyr::select(mission:launch_site, commander:lm_pilot, launch_vehicle:remarks)
 
+# Cleaning the dataset - cm & lm names : add NAs ----
 
+d4 <- d3 %>% 
+  dplyr::mutate(cm_name = case_when(nchar(cm_name) < 2 ~ NA_character_,
+                                    TRUE ~ cm_name),
+                lm_name = case_when(nchar(lm_name) < 2 ~ NA_character_,
+                                    TRUE ~ lm_name))
 
-clean_tbl <- raw_tbl %>% 
-  janitor::clean_names() %>% 
-  dplyr::select(-refs) %>% 
-  tidyr::separate(launch_date, into = c("date", "time", "site"), sep = "\n") %>% 
-  dplyr::mutate(date = lubridate::mdy(date),
-                site = case_when(mission == "Apollo 1" ~ time,
-                                 TRUE ~ as.character(site)),
-                time = case_when(mission == "Apollo 1" ~ NA_character_,
-                                 TRUE ~ as.character(time)),
-                site = str_replace(site, " \\s*\\([^\\)]+\\)", ""))
+# Cleaning the dataset - duration ----
 
-str_replace_all(clean_tbl$crew,  "((?<=[a-z])[A-Z]|[A-Z](?=[a-z]))",  " \\1")
-
-
-test <- clean_tbl %>% 
-  separate(duration, into = c("d", "h", "m", "s"), sep = "[dhms]")
-
-%>% 
-  tidyr::separate(crew, into = c("crew1", "crew2", "crew3"), sep = "\n")
+d5 <- d4 %>% 
+  dplyr::mutate(duration_2 = stringr::str_remove_all(duration, " [a-z]"),
+                duration_2 = stringr::str_remove(duration_2, "d")) %>% 
+  tidyr::separate(duration_2, into = c("d", "h", "m", "s"), sep = " ") %>% 
+  dplyr::mutate(d = stringr::str_remove(d, "^0+"),
+                h = stringr::str_remove(h, "^0+"),
+                m = stringr::str_remove(m, "^0+"),
+                s = stringr::str_remove(s, "^0+"))
   
-
-head(clean_tbl)
-
-%>% 
-  dplyr::mutate(site = case_when(mission == "Apollo 1" ~ time,
-                                 TRUE ~ as.character(site))) %>% 
-  dplyr::mutate(time = case_when(mission == "Apollo 1" ~ NA_character_,
-                                 TRUE ~ as.character(time))) %>% 
-  dplyr::mut
-
-clean_tbl$time[2] %>% 
-  str_remove(" GMT") %>% 
-  str_replace(":", "-")
-
-  lubridate::ymd_hm()
-
-
-# Testing {gt} package ----
-
-datardis::drwho_episodes %>% 
-  gt()
