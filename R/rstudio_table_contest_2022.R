@@ -101,32 +101,45 @@ d5 %>%
   gt() %>% 
   gt_plt_bar(column = duration_seconds, color = "blue", text_color = "dark")
 
-d5 %>% 
-  select(mission, launch_date)
+test <- d5 %>% 
+  select(mission, launch_date) %>%
+  mutate(min_date = min(launch_date),
+         max_date = max(launch_date))
 
-mtcars %>% 
-  group_by(cyl) %>% 
-  summarise(mpg_data = list(mpg), .groups = "drop") %>% 
+total_days <- lubridate::interval(start = test$min_date, end = test$max_date) %/% lubridate::days() %>% 
+  unique()
+
+head(test)
+
+mission_days <- abs(lubridate::interval(test$launch_date, test$min_date) %/% lubridate::days())
+mission_days
+
+test <- test %>% 
+  mutate(nb_days = mission_days)
+
+test %>% 
+  mutate(ct = 1) %>% 
+  complete(mission, nb_days, fill = list(ct = 1:2116))
+
+test2 <- test %>% 
+  select(nb_days, mission)
+
+launch_timeline <- tibble(
+  day = 0:total_days) %>% 
+  left_join(test2, by = c("day" = "nb_days"))
+
+launch_timeline2 <- launch_timeline %>% 
+  mutate(ct = case_when(!is.na(mission) ~ 1,
+                        TRUE ~ 0)) %>% 
+  complete(day, mission, fill = list(ct = 0)) %>% 
+  group_by(mission) %>% 
+  summarise(Timeline = list(ct))
+
+test_timeline <- d5 %>% 
+  left_join(launch_timeline2) %>% 
+  select(mission, Timeline)
+
+test_timeline %>% 
   gt() %>% 
-  gt_plt_sparkline(mpg_data, type = "default")
-
-
-bullet_df <- tibble::rownames_to_column(mtcars) %>%
-  dplyr::select(rowname, cyl:drat, mpg) %>%
-  dplyr::group_by(cyl) %>%
-  dplyr::mutate(target_col = mean(mpg)) %>%
-  dplyr::slice_sample(n = 3) %>% 
-  ungroup()
-
-bullet_df
-
-bullet_df %>%
-  gt() %>%
-  gt_plt_bullet(column = mpg, target = target_col, width = 45,
-                palette = c("lightblue", "black"))
-
-d5 %>% 
-  select(mission, launch_date) %>% 
-  mutate(timeline = max(launch_date)) %>% 
-  gt() %>% 
-  gt_plt_bullet(column = timeline, target = launch_date)
+  gtExtras::gt_plt_sparkline(
+    Timeline, label = FALSE, palette = c("red", "#ABB4C4", "#ABB4C4", "red", "#ABB4C4"))
