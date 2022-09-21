@@ -95,4 +95,34 @@ d5 %>%
   mutate(duration_seconds = as.numeric(word(duration, 1, sep = "s"))) %>% 
   select(mission, duration_seconds) %>% 
   gt() %>% 
-  gt_plt_bar(column = duration_seconds, scaled = TRUE)
+  gt_plt_bar(column = duration_seconds, color = "blue", text_color = "dark")
+
+d5 %>% 
+  select(mission, launch_date)
+
+mtcars %>% 
+  group_by(cyl) %>% 
+  summarise(mpg_data = list(mpg), .groups = "drop") %>% 
+  gt() %>% 
+  gt_plt_sparkline(mpg_data, type = "default")
+
+
+bullet_df <- tibble::rownames_to_column(mtcars) %>%
+  dplyr::select(rowname, cyl:drat, mpg) %>%
+  dplyr::group_by(cyl) %>%
+  dplyr::mutate(target_col = mean(mpg)) %>%
+  dplyr::slice_sample(n = 3) %>% 
+  ungroup()
+
+bullet_df
+
+bullet_df %>%
+  gt() %>%
+  gt_plt_bullet(column = mpg, target = target_col, width = 45,
+                palette = c("lightblue", "black"))
+
+d5 %>% 
+  select(mission, launch_date) %>% 
+  mutate(timeline = max(launch_date)) %>% 
+  gt() %>% 
+  gt_plt_bullet(column = timeline, target = launch_date)
