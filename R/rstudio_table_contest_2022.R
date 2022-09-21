@@ -77,8 +77,15 @@ d5 <- d4 %>%
   dplyr::mutate(duration_2 = stringr::str_remove_all(duration, " [a-z]"),
                 duration_2 = stringr::str_remove(duration_2, "d")) %>% 
   tidyr::separate(duration_2, into = c("d", "h", "m", "s"), sep = " ") %>% 
-  dplyr::mutate(d = stringr::str_remove(d, "^0+"),
-                h = stringr::str_remove(h, "^0+"),
-                m = stringr::str_remove(m, "^0+"),
-                s = stringr::str_remove(s, "^0+"))
+  dplyr::mutate(d = stringr::str_remove(d, "^0"),
+                h = stringr::str_remove(h, "^0"),
+                m = stringr::str_remove(m, "^0"),
+                s = stringr::str_remove(s, "^0")) %>% 
+  dplyr::mutate(duration = case_when(nchar(duration) < 2 ~ NA_character_,
+                                     TRUE ~ duration),
+                d = case_when(mission == "Apollo 1" ~ NA_character_,
+                              TRUE ~ d)) %>% 
+  dplyr::mutate(duration_corrected = paste0(d, "d ", h, "H ", m, "M ", s, "S")) %>% 
+  dplyr::mutate(duration = lubridate::duration(duration_corrected)) %>% 
+  dplyr::select(mission:remarks)
   
