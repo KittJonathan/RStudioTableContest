@@ -7,6 +7,10 @@ library(tidyverse)
 library(gt)
 library(gtExtras)
 
+# Links ----
+
+# https://github.com/BjnNowak/BjnNowak/blob/main/content/post/2021-10-04-r-beautiful-tables-with-gt-and-gtextras/index.Rmd
+
 # Creating the dataset ----
 
 url <- "https://en.wikipedia.org/wiki/List_of_Apollo_missions"
