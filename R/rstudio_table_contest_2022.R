@@ -9,7 +9,7 @@ library(gtExtras)
 
 # Links ----
 
-# https://github.com/BjnNowak/BjnNowak/blob/main/content/post/2021-10-04-r-beautiful-tables-with-gt-and-gtextras/index.Rmd
+# https://bjnnowak.netlify.app/2021/10/04/r-beautiful-tables-with-gt-and-gtextras/
 
 # Creating the dataset ----
 
