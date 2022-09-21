@@ -4,8 +4,8 @@
 # Load packages ----
 
 library(tidyverse)
-# library(datefixR)
 library(gt)
+library(gtExtras)
 
 # Creating the dataset ----
 
@@ -89,3 +89,10 @@ d5 <- d4 %>%
   dplyr::mutate(duration = lubridate::duration(duration_corrected)) %>% 
   dplyr::select(mission:remarks)
   
+# Testing {gt} package ----
+
+d5 %>% 
+  mutate(duration_seconds = as.numeric(word(duration, 1, sep = "s"))) %>% 
+  select(mission, duration_seconds) %>% 
+  gt() %>% 
+  gt_plt_bar(column = duration_seconds, scaled = TRUE)
