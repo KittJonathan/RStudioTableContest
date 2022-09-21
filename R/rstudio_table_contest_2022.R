@@ -92,6 +92,16 @@ d5 <- d4 %>%
   dplyr::mutate(duration_corrected = paste0(d, "d ", h, "H ", m, "M ", s, "S")) %>% 
   dplyr::mutate(duration = lubridate::duration(duration_corrected)) %>% 
   dplyr::select(mission:remarks)
+
+# Cleaning dataset - add patches ----
+
+d6 <- d5 %>% 
+  mutate(patch = rep("https://fr.wikipedia.org/wiki/Apollo_1#/media/Fichier:Apollo_1_patch.png", 12))
+
+d6 %>% 
+  select(mission, patch) %>% 
+  gt() %>% 
+  gt_img_rows(patch, img_source = "web")
   
 # Testing {gt} package ----
 
