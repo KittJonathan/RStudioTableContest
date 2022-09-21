@@ -96,12 +96,24 @@ d5 <- d4 %>%
 # Cleaning dataset - add patches ----
 
 d6 <- d5 %>% 
-  mutate(patch = rep("https://fr.wikipedia.org/wiki/Apollo_1#/media/Fichier:Apollo_1_patch.png", 12))
+  mutate(patch = c("https://upload.wikimedia.org/wikipedia/commons/3/35/Apollo_1_patch.png",
+                   "https://upload.wikimedia.org/wikipedia/commons/3/34/AP7lucky7.png",
+                   "https://upload.wikimedia.org/wikipedia/commons/8/8b/Apollo-8-patch.png",
+                   "https://upload.wikimedia.org/wikipedia/commons/0/07/Apollo-9-patch.png",
+                   "https://upload.wikimedia.org/wikipedia/commons/6/64/Apollo-10-LOGO.png",
+                   "https://upload.wikimedia.org/wikipedia/commons/2/27/Apollo_11_insignia.png",
+                   "https://upload.wikimedia.org/wikipedia/commons/8/8d/Apollo_12_insignia.png",
+                   "https://upload.wikimedia.org/wikipedia/commons/a/ac/Apollo_13-insignia.png",
+                   "https://upload.wikimedia.org/wikipedia/commons/d/d7/Apollo_14-insignia.png",
+                   "https://upload.wikimedia.org/wikipedia/commons/e/e5/Apollo_15-insignia.png",
+                   "https://upload.wikimedia.org/wikipedia/commons/6/66/Apollo-16-LOGO.png",
+                   "https://upload.wikimedia.org/wikipedia/commons/7/76/Apollo_17-insignia.png")
+  )
 
 d6 %>% 
   select(mission, patch) %>% 
   gt() %>% 
-  gt_img_rows(patch, img_source = "web")
+  gt_img_rows(columns = patch, img_source = "web", height = 50)
   
 # Testing {gt} package ----
 
