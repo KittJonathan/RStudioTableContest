@@ -62,41 +62,24 @@ d1 <- raw_tbl %>%
                                             TRUE ~ stringr::word(crew, 5L, 6L))) %>% 
   # select columns
   dplyr::select(mission:launch_time, commander, lm_pilot, cm_pilot,
-                cm_name:remarks)
-  
-  
+                cm_name:remarks) %>% 
+  # remove characters from duration 
+  dplyr::mutate(duration = stringr::str_remove_all(duration, " [a-z]")) %>% 
+  # remove "d" from duration for Apollo 17
+  dplyr::mutate(duration = stringr::str_remove(duration, "d")) %>% 
+  # split duration into d, h, m, s
+  tidyr::separate(duration, into = c("d", "h", "m", "s"), sep = " ") %>% 
+  # remove lead zeros from d, h, m, s
+  dplyr::mutate(across(d:s, ~ stringr::str_remove(., "^0"))) %>% 
+  # set d, h, m, s as numeric variables
+  dplyr::mutate(across(d:s, ~ as.numeric(.))) %>% 
+  # calculate mission duration in days
+  dplyr::mutate(duration_days = d + h/24 + m/1440 + s/86400) %>% 
+  # select columns
+  dplyr::select(mission:lm_name, duration_days, d:remarks)
 
+mutate(duration_seconds = as.numeric(word(duration, 1, sep = "s")))
 
-
-# Cleaning the dataset - crew ----
-
-  dplyr::select(mission:launch_site, commander:lm_pilot, launch_vehicle:remarks)
-
-# Cleaning the dataset - cm & lm names : add NAs ----
-
-d4 <- d3 %>% 
-  dplyr::mutate(cm_name = case_when(nchar(cm_name) < 2 ~ NA_character_,
-                                    TRUE ~ cm_name),
-                lm_name = case_when(nchar(lm_name) < 2 ~ NA_character_,
-                                    TRUE ~ lm_name))
-
-# Cleaning the dataset - duration ----
-
-d5 <- d4 %>% 
-  dplyr::mutate(duration_2 = stringr::str_remove_all(duration, " [a-z]"),
-                duration_2 = stringr::str_remove(duration_2, "d")) %>% 
-  tidyr::separate(duration_2, into = c("d", "h", "m", "s"), sep = " ") %>% 
-  dplyr::mutate(d = stringr::str_remove(d, "^0"),
-                h = stringr::str_remove(h, "^0"),
-                m = stringr::str_remove(m, "^0"),
-                s = stringr::str_remove(s, "^0")) %>% 
-  dplyr::mutate(duration = case_when(nchar(duration) < 2 ~ NA_character_,
-                                     TRUE ~ duration),
-                d = case_when(mission == "Apollo 1" ~ NA_character_,
-                              TRUE ~ d)) %>% 
-  dplyr::mutate(duration_corrected = paste0(d, "d ", h, "H ", m, "M ", s, "S")) %>% 
-  dplyr::mutate(duration = lubridate::duration(duration_corrected)) %>% 
-  dplyr::select(mission:remarks)
 
 readr::write_csv(d5, "clean_data.csv")
 
