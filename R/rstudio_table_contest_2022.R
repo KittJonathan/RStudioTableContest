@@ -76,12 +76,22 @@ d1 <- raw_tbl %>%
   # calculate mission duration in days
   dplyr::mutate(duration_days = d + h/24 + m/1440 + s/86400) %>% 
   # select columns
-  dplyr::select(mission:lm_name, duration_days, d:remarks)
-
-mutate(duration_seconds = as.numeric(word(duration, 1, sep = "s")))
-
-
-readr::write_csv(d5, "clean_data.csv")
+  dplyr::select(mission:lm_name, duration_days, d:remarks) %>% 
+  # add landing site names 
+  dplyr::mutate(landing_site_name = c("Sea of Tranquility", "Ocean of Storms", 
+                                      "Fra Mauro", "Hadley-Apennine",
+                                      "Descartes Highlands", "Taurus-Littrow")) %>% 
+  # add number of lunar and deep space EVAs
+  dplyr::mutate(lunar_evas = c(1, 2, 2, 3, 3, 3),
+                deep_space_evas = c(0, 0, 0, 1, 1, 1)) %>% 
+  # add lunar EVA durations 
+  dplyr::mutate(lunar_eva_h = c(2, NA, NA, NA, NA, NA),
+                lunar_eva_m = c(31, NA, NA, NA, NA, NA)) %>% 
+  # add lunar rocks recolted mass
+  dplyr::mutate(lunar_rocks_kgs = c(21.55, 34.4, NA, NA, NA, NA)) %>% 
+  # add splashdown coordinates
+  dplyr::mutate(splashdown_x = c(-169.15, -23.42, -172.65, -158.13, -156.22, -166.18),
+                splashdown_y = c(13.32, -3.01, -27.02, 26.12, -0.72, -18.47))
 
 # Cleaning dataset - add patches ----
 
