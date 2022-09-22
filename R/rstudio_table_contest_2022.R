@@ -112,13 +112,25 @@ d6 <- d5 %>%
 
 # Testing {gt} package ----
 
-(tab <- d6 %>% 
-  mutate(team = paste(commander, cm_pilot, lm_pilot, sep = "<br>")) %>% 
-  select(mission, team) %>% 
+d6 %>% 
+  mutate(crew = paste(commander, cm_pilot, lm_pilot, sep = "<br>")) %>% 
+  mutate(hourglass = "https://static.thenounproject.com/png/1279503-200.png") %>% 
+  mutate(calendar = "https://static.thenounproject.com/png/1068769-200.png") %>% 
+  select(mission, crew, hourglass, calendar, duration) %>% 
   gt() %>% 
-  # gt_img_rows(columns = patch, img_source = "web", height = 50)
-  fmt_markdown(columns = everything())
-)
+  fmt_markdown(columns = crew) %>% 
+  gt_img_rows(columns = hourglass) %>% 
+  gt_img_rows(columns = calendar)
+
+
+
+%>% 
+  gt() %>% 
+  fmt_markdown(columns = crew) %>% 
+  gt_img_rows(columns = hourglass)
+
+  gt_img_rows(columns = clock, img_source = "web", height = 50) %>% 
+  fmt_markdown(columns = team)
 
 gtsave(tab, "tab.png")
 
