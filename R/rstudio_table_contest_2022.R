@@ -110,12 +110,28 @@ d6 <- d5 %>%
                    "https://upload.wikimedia.org/wikipedia/commons/7/76/Apollo_17-insignia.png")
   )
 
+# Testing {gt} package ----
+
+(tab <- d6 %>% 
+  mutate(team = paste(commander, cm_pilot, lm_pilot, sep = "<br>")) %>% 
+  select(mission, team) %>% 
+  gt() %>% 
+  # gt_img_rows(columns = patch, img_source = "web", height = 50)
+  fmt_markdown(columns = everything())
+)
+
+gtsave(tab, "tab.png")
+
+  select(mission, commander, cm_pilot, lm_pilot) %>% 
+  
+  gt()
+
 d6 %>% 
   select(mission, patch) %>% 
   gt() %>% 
   gt_img_rows(columns = patch, img_source = "web", height = 50)
   
-# Testing {gt} package ----
+
 
 d5 %>% 
   mutate(duration_seconds = as.numeric(word(duration, 1, sep = "s"))) %>% 
