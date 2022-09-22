@@ -11,7 +11,7 @@ library(gtExtras)
 
 # https://bjnnowak.netlify.app/2021/10/04/r-beautiful-tables-with-gt-and-gtextras/
 
-# Creating the dataset ----
+# Scraping the data from wikipedia ----
 
 url <- "https://en.wikipedia.org/wiki/List_of_Apollo_missions"
 
@@ -24,47 +24,52 @@ raw_tbl <- tables[[6]]
 
 rm(tables, webpage, url)
 
-# Cleaning the dataset - column names ----
+# Cleaning the dataset ----
 
 d1 <- raw_tbl %>% 
-  janitor::clean_names() %>% 
-  dplyr::select(mission:crew,
-                launch_vehicle = launch_vehicle_b,
-                everything())
-
-# Cleaning the dataset - launch date + time ----
-
-d2 <- d1 %>% 
-  dplyr::mutate(launch_date = str_replace(launch_date, " \\s*\\([^\\)]+\\)", "")) %>% 
+  # clean column names
+  janitor::clean_names() %>%
+  # select columns
+  dplyr::select(-c(launch_vehicle_b, refs)) %>%
+  # filter missions : missions with moon landings
+  dplyr::filter(mission %in% c("Apollo 11", "Apollo 12", "Apollo 14",  
+                               'Apollo 15', "Apollo 16", "Apollo 17")) %>% 
+  # split launch_date into date, time and site
   tidyr::separate(launch_date,
                   into = c("launch_date", "launch_time", "launch_site"),
                   sep = "\n") %>% 
-  dplyr::mutate(launch_site = case_when(mission == "Apollo 1" ~ launch_time,
-                                        TRUE ~ launch_site),
-                launch_time = case_when(mission == "Apollo 1" ~ NA_character_,
-                                        TRUE ~ launch_time)) %>% 
-  dplyr::mutate(launch_date = lubridate::mdy(launch_date),
-                launch_time = lubridate::hm(launch_time))
+  # remove launch site
+  dplyr::select(-launch_site) %>% 
+  # define launch_date as date
+  dplyr::mutate(launch_date = lubridate::mdy(launch_date)) %>% 
+  # define launch_time as time
+  dplyr::mutate(launch_time = lubridate::hm(launch_time)) %>% 
+  # in crew column, remove strings between parentheses
+  dplyr::mutate(crew = stringr::str_replace(crew, " \\s*\\([^\\)]+\\)", "")) %>% 
+  # remove "Buzz" from crew for Apollo 11
+  dplyr::mutate(crew = stringr::str_remove(crew, "\"Buzz\"")) %>% 
+  # remove white spaces from crew column
+  dplyr::mutate(crew = stringr::str_replace_all(crew, fixed(" "), "")) %>% 
+  # split crew string on capital letters
+  dplyr::mutate(crew = stringr::str_replace_all(crew, "([[:upper:]])", " \\1")) %>% 
+  # remove white spaces from left and right of crew string
+  dplyr::mutate(crew = stringr::str_trim(crew)) %>% 
+  # split crew into commander, cm pilot and lm pilot
+  dplyr::mutate(commander = stringr::word(crew, 1L, 2L),
+                cm_pilot = dplyr::case_when(mission == "Apollo 12" ~ stringr::word(crew, 3L, 6L),
+                                            TRUE ~ stringr::word(crew, 3L, 4L)),
+                lm_pilot = dplyr::case_when(mission == "Apollo 12" ~ stringr::word(crew, 7L, 8L),
+                                            TRUE ~ stringr::word(crew, 5L, 6L))) %>% 
+  # select columns
+  dplyr::select(mission:launch_time, commander, lm_pilot, cm_pilot,
+                cm_name:remarks)
+  
+  
+
+
 
 # Cleaning the dataset - crew ----
 
-d3 <- d2 %>% 
-  dplyr::mutate(crew = str_replace(crew, " \\s*\\([^\\)]+\\)", ""),
-                crew = gsub('"', "", crew),
-                crew = str_remove(crew, " Buzz")) %>% 
-  dplyr::mutate(crew = stringr::str_replace_all(crew, fixed(" "), "")) %>% 
-  dplyr::mutate(crew = stringr::str_replace_all(crew, "([[:upper:]])", " \\1")) %>% 
-  dplyr::mutate(crew = stringr::str_trim(crew)) %>% 
-  dplyr::mutate(commander = case_when(mission %in% c("Apollo 9", "Apollo 10") ~ stringr::word(crew, 1L, 3L),
-                                      TRUE ~ stringr::word(crew, 1L, 2L)),
-                cm_pilot = case_when(mission == "Apollo 7" ~ stringr::word(crew, 3L, 5L),
-                                                 mission == "Apollo 12" ~stringr::word(crew, 3L, 6L),
-                                                 mission %in% c("Apollo 9", "Apollo 10") ~ stringr::word(crew, 4L, 5L),
-                                                 TRUE ~ stringr::word(crew, 3L, 4L)),
-                lm_pilot = case_when(mission == "Apollo 1" ~ stringr::word(crew, 5L, 7L),
-                                               mission == "Apollo 12" ~ stringr::word(crew, 7L, 8L),
-                                               mission %in% c("Apollo 7", "Apollo 9", "Apollo 10") ~ stringr::word(crew, 6L, 7L),
-                                               TRUE ~ stringr::word(crew, 5L, 6L))) %>% 
   dplyr::select(mission:launch_site, commander:lm_pilot, launch_vehicle:remarks)
 
 # Cleaning the dataset - cm & lm names : add NAs ----
@@ -93,22 +98,34 @@ d5 <- d4 %>%
   dplyr::mutate(duration = lubridate::duration(duration_corrected)) %>% 
   dplyr::select(mission:remarks)
 
+readr::write_csv(d5, "clean_data.csv")
+
 # Cleaning dataset - add patches ----
 
-d6 <- d5 %>% 
-  mutate(patch = c("https://upload.wikimedia.org/wikipedia/commons/3/35/Apollo_1_patch.png",
-                   "https://upload.wikimedia.org/wikipedia/commons/3/34/AP7lucky7.png",
-                   "https://upload.wikimedia.org/wikipedia/commons/8/8b/Apollo-8-patch.png",
-                   "https://upload.wikimedia.org/wikipedia/commons/0/07/Apollo-9-patch.png",
-                   "https://upload.wikimedia.org/wikipedia/commons/6/64/Apollo-10-LOGO.png",
-                   "https://upload.wikimedia.org/wikipedia/commons/2/27/Apollo_11_insignia.png",
-                   "https://upload.wikimedia.org/wikipedia/commons/8/8d/Apollo_12_insignia.png",
-                   "https://upload.wikimedia.org/wikipedia/commons/a/ac/Apollo_13-insignia.png",
-                   "https://upload.wikimedia.org/wikipedia/commons/d/d7/Apollo_14-insignia.png",
-                   "https://upload.wikimedia.org/wikipedia/commons/e/e5/Apollo_15-insignia.png",
-                   "https://upload.wikimedia.org/wikipedia/commons/6/66/Apollo-16-LOGO.png",
-                   "https://upload.wikimedia.org/wikipedia/commons/7/76/Apollo_17-insignia.png")
-  )
+# d6 <- d5 %>% 
+#   mutate(patch = c("https://upload.wikimedia.org/wikipedia/commons/3/35/Apollo_1_patch.png",
+#                    "https://upload.wikimedia.org/wikipedia/commons/3/34/AP7lucky7.png",
+#                    "https://upload.wikimedia.org/wikipedia/commons/8/8b/Apollo-8-patch.png",
+#                    "https://upload.wikimedia.org/wikipedia/commons/0/07/Apollo-9-patch.png",
+#                    "https://upload.wikimedia.org/wikipedia/commons/6/64/Apollo-10-LOGO.png",
+#                    "https://upload.wikimedia.org/wikipedia/commons/2/27/Apollo_11_insignia.png",
+#                    "https://upload.wikimedia.org/wikipedia/commons/8/8d/Apollo_12_insignia.png",
+#                    "https://upload.wikimedia.org/wikipedia/commons/a/ac/Apollo_13-insignia.png",
+#                    "https://upload.wikimedia.org/wikipedia/commons/d/d7/Apollo_14-insignia.png",
+#                    "https://upload.wikimedia.org/wikipedia/commons/e/e5/Apollo_15-insignia.png",
+#                    "https://upload.wikimedia.org/wikipedia/commons/6/66/Apollo-16-LOGO.png",
+#                    "https://upload.wikimedia.org/wikipedia/commons/7/76/Apollo_17-insignia.png")
+#   )
+
+# Creating the table ----
+
+d1 <- readr::read_csv("clean_data.csv")
+
+d1 %>% 
+  mutate(duration_seconds = as.numeric(word(duration, 1, sep = "s"))) %>% 
+  select(mission, launch_date, duration_seconds) %>% 
+  pivot_longer(cols = launch_date:duration_seconds, names_to = "param", values_to = "value")
+
 
 # Testing {gt} package ----
 
