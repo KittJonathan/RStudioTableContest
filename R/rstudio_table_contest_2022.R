@@ -76,7 +76,40 @@ d1 <- raw_tbl %>%
   # calculate mission duration in days
   dplyr::mutate(duration_days = d + h/24 + m/1440 + s/86400) %>% 
   # select columns
-  dplyr::select(mission:lm_name, duration_days, d:remarks) %>% 
+  dplyr::select(mission:lm_name, duration_days, d:s) %>% 
+  # add lunar landing datatime, EVAs count + duration, sample mass and lunar take-off datetime
+  dplyr::mutate(lunar_landing = c(lubridate::make_datetime(1969, 07, 20, 20, 17, 40),
+                                  lubridate::make_datetime(1969, 11, 19, 06, 54, 35),
+                                  lubridate::make_datetime(1971, 02, 05, 09, 18, 11),
+                                  lubridate::make_datetime(1971, 07, 30, 22, 16, 29),
+                                  lubridate::make_datetime(1972, 04, 21, 02, 23, 35),
+                                  lubridate::make_datetime(1972, 12, 11, 19, 54, 58)),
+                lunar_evas_count = c(1, 2, 2, 3, 3, 3),
+                lunar_evas_duration = c(lubridate::duration("2H 31M 40S"),
+                                        lubridate::duration("7H 45M 18S"),
+                                        lubridate::duration("9H 22M 31S"),
+                                        lubridate::duration("18H 34M 46S"),
+                                        lubridate::duration("20H 14M 14S"),
+                                        lubridate::duration("22H 3M 57S")),
+                sample_mass_kgs = c(21.55, 34.35, 42.8, 77, 95.71, 115),
+                lunar_takeoff = c(lubridate::make_datetime(1969, 07, 21, 17, 54, 00),
+                                  lubridate::make_datetime(1969, 11, 20, 14, 25, 47),
+                                  lubridate::make_datetime(1971, 02, 06, 18, 48, 42),
+                                  lubridate::make_datetime(1971, 08, 02, 17, 11, 23),
+                                  lubridate::make_datetime(1972, 04, 24, 01, 25, 47),
+                                  lubridate::make_datetime(1972, 12, 14, 22, 54, 37)),
+                splashdown = c(lubridate::make_datetime(1969, 07, 24, 16, 50, 35),
+                               lubridate::make_datetime(1969, 11, 24, 20, 58, 24),
+                               lubridate::make_datetime(1971, 02, 09, 21, 05, 00),
+                               lubridate::make_datetime(1971, 08, 07, 20, 45, 53),
+                               lubridate::make_datetime(1972, 04, 27, 19, 45, 05),
+                               lubridate::make_datetime(1972, 12, 19, 05, 33, 00)),
+                splashdown_long = c(-169.15, -165.15, -172.65, -158.13, -156.22, -166.18),
+                splashdown_lat = c(13.32, -15.78, -27.02, 26.12, -0.72, -18.47)
+    )
+
+
+%>% 
   # add landing site names 
   dplyr::mutate(landing_site_name = c("Sea of Tranquility", "Ocean of Storms", 
                                       "Fra Mauro", "Hadley-Apennine",
@@ -111,6 +144,18 @@ d1 <- raw_tbl %>%
 #   )
 
 # Creating the table ----
+
+"Share of <span style = 'color: #b3cde0;'>hydroelectric</span>, <span style = 'color: #35a79c;'>wind</span> and <span style = 'color: #f6be00;'>solar energies</span>"
+
+d1 %>% 
+  select(mission, commander:cm_pilot) %>% 
+  mutate(commander = paste0("<span style = 'color : blue'> ", "<b>", commander, "<b>", "</span>"),
+         lm_pilot = paste0("<span style = 'color : green'> ", "<b>", lm_pilot, "<b>", "</span>"),
+         cm_pilot = paste0("<span style = 'color : red'> ", cm_pilot, "</span>")) %>% 
+  mutate(crew = paste0(commander, " <br>", lm_pilot, " <br>", cm_pilot)) %>% 
+  select(mission, crew) %>% 
+  gt() %>% 
+  fmt_markdown(columns = crew)
 
 d1 <- readr::read_csv("clean_data.csv")
 
