@@ -93,14 +93,17 @@ d1 <- raw_tbl %>%
   dplyr::mutate(to_the_moon_days = lubridate::interval(launch_dt, lunar_landing_dt) / days(1)) %>% 
   # add nb of days on the moon
   dplyr::mutate(on_the_moon_days = lubridate::interval(lunar_landing_dt, lunar_takeoff_dt) / days(1)) %>% 
-  # add nb of days from the moon surface to splashdown
-  dplyr::mutate(to_the_earth_days = lubridate::interval(lunar_takeoff_dt, splashdown_dt) / days(1)) %>% 
-  # create list of nb of days
-  dplyr::group_by(mission) %>% 
-  dplyr::mutate(mission_duration = list(c(to_the_moon_days, on_the_moon_days, to_the_earth_days))) %>% 
-  dplyr::ungroup()
+  # add splashdown coordinates
+  dplyr::mutate(splashdown_x = c(-169.15, -23.42, -172.65, -158.13, -156.22, -166.18),
+                splashdown_y = c(13.32, -3.01, -27.02, 26.12, -0.72, -18.47))
 
 
+  # # add nb of days from the moon surface to splashdown
+  # dplyr::mutate(to_the_earth_days = lubridate::interval(lunar_takeoff_dt, splashdown_dt) / days(1)) %>% 
+  # # create list of nb of days
+  # dplyr::group_by(mission) %>% 
+  # dplyr::mutate(mission_duration = list(c(to_the_moon_days, on_the_moon_days, to_the_earth_days))) %>% 
+  # dplyr::ungroup()
 
 # # define launch_date as date
 # dplyr::mutate(launch_date = lubridate::mdy(launch_date)) %>% 
@@ -182,23 +185,46 @@ d1 <- raw_tbl %>%
 #   dplyr::mutate(splashdown_x = c(-169.15, -23.42, -172.65, -158.13, -156.22, -166.18),
 #                 splashdown_y = c(13.32, -3.01, -27.02, 26.12, -0.72, -18.47))
 
+# Create splashdown maps ----
+
+world <- map_data("world") %>% 
+  filter(region != "Antarctica")
+
+p <- ggplot() +
+  geom_polygon(data = world,
+               aes(x = long, y = lat, group = group),
+               colour = "#1b1d46", fill = "#1b1d46") +
+  geom_point(data = d1,
+             aes(x = splashdown_x, y = splashdown_y),
+             colour = "red", size = 12) +
+  coord_fixed(ratio = 1.3,
+              xlim = c(-175, -10),
+              ylim = c(-30, 25)) +
+  theme_void() +
+  theme(panel.background = element_rect(fill = "white", colour = "white"),
+        plot.background = element_rect(fill = "white", colour = "white"))
+
+ggsave("img/splashdown.png", p, dpi = 320, width = 12, height = 6)
+
 
 # Create table ----
 
 d1 %>% 
-  select(mission:launch_time, mission_duration) %>% 
+  select(mission:launch_time, on_the_moon_days) %>% 
+  mutate(splashdown_map = "img/splashdown.png") %>% 
   gt() %>% 
   fmt_markdown(crew) %>% 
   gt_merge_stack(col1 = mission, col2 = crew,
                  palette = c("white", "grey")) %>% 
   gt_merge_stack(col1 = launch_date, col2 = launch_time,
                  palette = c("white", "grey")) %>% 
-  gt_plt_bar_stack(column = mission_duration,
-                   position = "stack",
-                   labels = c("To the moon", "On the moon", "Back to Earth"),
-                   palette = c("lightblue", "darkgrey", "lightblue")) %>%
+  # gt_plt_bar_stack(column = mission_duration,
+  #                  position = "stack",
+  #                  labels = c("To the moon", "On the moon", "Back to Earth"),
+  #                  palette = c("lightblue", "darkgrey", "lightblue")) %>%
   # gt_plt_bar(column = to_the_moon_days) %>% 
-  # gt_plt_bar(column = on_the_moon_days) %>% 
+  gt_plt_bar(column = on_the_moon_days) %>%
+  gt_img_rows(columns = splashdown_map, img_source = "local", height = 50) %>% 
   gt_theme_dark()
 
 
