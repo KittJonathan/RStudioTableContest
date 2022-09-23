@@ -105,11 +105,18 @@ d1 <- raw_tbl %>%
                                lubridate::make_datetime(1972, 04, 27, 19, 45, 05),
                                lubridate::make_datetime(1972, 12, 19, 05, 33, 00)),
                 splashdown_long = c(-169.15, -165.15, -172.65, -158.13, -156.22, -166.18),
-                splashdown_lat = c(13.32, -15.78, -27.02, 26.12, -0.72, -18.47)
-    )
+                splashdown_lat = c(13.32, -15.78, -27.02, 26.12, -0.72, -18.47)) %>% 
+  # add lunar landing coordinates
+  dplyr::mutate(landing_long = c(23.47, -23.42, -17.47, 3.63, 15.50, 30.77),
+                landing_lat = c(0.67, -3.01, -3.65, 26.13, -8.97, 20.19)) %>% 
+  # add mission patches
+  dplyr::mutate(patch = c("https://upload.wikimedia.org/wikipedia/commons/2/27/Apollo_11_insignia.png",
+                          "https://upload.wikimedia.org/wikipedia/commons/8/8d/Apollo_12_insignia.png",
+                          "https://upload.wikimedia.org/wikipedia/commons/d/d7/Apollo_14-insignia.png",
+                          "https://upload.wikimedia.org/wikipedia/commons/e/e5/Apollo_15-insignia.png",
+                          "https://upload.wikimedia.org/wikipedia/commons/6/66/Apollo-16-LOGO.png",
+                          "https://upload.wikimedia.org/wikipedia/commons/7/76/Apollo_17-insignia.png"))
 
-
-%>% 
   # add landing site names 
   dplyr::mutate(landing_site_name = c("Sea of Tranquility", "Ocean of Storms", 
                                       "Fra Mauro", "Hadley-Apennine",
@@ -126,36 +133,25 @@ d1 <- raw_tbl %>%
   dplyr::mutate(splashdown_x = c(-169.15, -23.42, -172.65, -158.13, -156.22, -166.18),
                 splashdown_y = c(13.32, -3.01, -27.02, 26.12, -0.72, -18.47))
 
-# Cleaning dataset - add patches ----
 
-# d6 <- d5 %>% 
-#   mutate(patch = c("https://upload.wikimedia.org/wikipedia/commons/3/35/Apollo_1_patch.png",
-#                    "https://upload.wikimedia.org/wikipedia/commons/3/34/AP7lucky7.png",
-#                    "https://upload.wikimedia.org/wikipedia/commons/8/8b/Apollo-8-patch.png",
-#                    "https://upload.wikimedia.org/wikipedia/commons/0/07/Apollo-9-patch.png",
-#                    "https://upload.wikimedia.org/wikipedia/commons/6/64/Apollo-10-LOGO.png",
-#                    "https://upload.wikimedia.org/wikipedia/commons/2/27/Apollo_11_insignia.png",
-#                    "https://upload.wikimedia.org/wikipedia/commons/8/8d/Apollo_12_insignia.png",
-#                    "https://upload.wikimedia.org/wikipedia/commons/a/ac/Apollo_13-insignia.png",
-#                    "https://upload.wikimedia.org/wikipedia/commons/d/d7/Apollo_14-insignia.png",
-#                    "https://upload.wikimedia.org/wikipedia/commons/e/e5/Apollo_15-insignia.png",
-#                    "https://upload.wikimedia.org/wikipedia/commons/6/66/Apollo-16-LOGO.png",
-#                    "https://upload.wikimedia.org/wikipedia/commons/7/76/Apollo_17-insignia.png")
-#   )
+
 
 # Creating the table ----
 
 "Share of <span style = 'color: #b3cde0;'>hydroelectric</span>, <span style = 'color: #35a79c;'>wind</span> and <span style = 'color: #f6be00;'>solar energies</span>"
 
 d1 %>% 
-  select(mission, commander:cm_pilot) %>% 
+  select(mission, patch, commander:cm_pilot) %>% 
   mutate(commander = paste0("<span style = 'color : blue'> ", "<b>", commander, "<b>", "</span>"),
          lm_pilot = paste0("<span style = 'color : green'> ", "<b>", lm_pilot, "<b>", "</span>"),
          cm_pilot = paste0("<span style = 'color : red'> ", cm_pilot, "</span>")) %>% 
   mutate(crew = paste0(commander, " <br>", lm_pilot, " <br>", cm_pilot)) %>% 
-  select(mission, crew) %>% 
+  select(mission, patch, crew) %>% 
   gt() %>% 
-  fmt_markdown(columns = crew)
+  fmt_markdown(columns = crew) %>%
+  gt_img_rows(columns = patch) %>% 
+  tab_header(title = md("**There and back again**"),
+             subtitle = "Apollo missions that landed on the moon")
 
 d1 <- readr::read_csv("clean_data.csv")
 
