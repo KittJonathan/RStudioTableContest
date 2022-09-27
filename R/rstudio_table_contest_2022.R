@@ -4,6 +4,7 @@
 
 # Load packages ----
 
+library(lubridate)
 library(tidyverse)
 library(gt)
 library(gtExtras)
@@ -94,8 +95,8 @@ d1 <- raw_tbl %>%
   # add nb of days on the moon
   dplyr::mutate(on_the_moon_days = lubridate::interval(lunar_landing_dt, lunar_takeoff_dt) / days(1)) %>% 
   # add splashdown coordinates
-  dplyr::mutate(splashdown_x = c(-169.15, -23.42, -172.65, -158.13, -156.22, -166.18),
-                splashdown_y = c(13.32, -3.01, -27.02, 26.12, -0.72, -18.47))
+  dplyr::mutate(splashdown_x = c(-169.15, -165.15, -172.65, -158.13, -156.22, -166.18),
+                splashdown_y = c(13.32, -15.78, -27.02, 26.12, -0.72, -18.47))
 
 
   # # add nb of days from the moon surface to splashdown
@@ -196,13 +197,15 @@ p <- ggplot() +
                colour = "#1b1d46", fill = "#1b1d46") +
   geom_point(data = d1,
              aes(x = splashdown_x, y = splashdown_y),
-             colour = "red", size = 12) +
+             colour = "red", size = 8) +
   coord_fixed(ratio = 1.3,
-              xlim = c(-175, -10),
-              ylim = c(-30, 25)) +
+              xlim = c(-175, -25),
+              ylim = c(-30, 35)) +
   theme_void() +
   theme(panel.background = element_rect(fill = "white", colour = "white"),
         plot.background = element_rect(fill = "white", colour = "white"))
+
+p
 
 ggsave("img/splashdown.png", p, dpi = 320, width = 12, height = 6)
 
