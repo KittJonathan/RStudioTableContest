@@ -191,30 +191,32 @@ d1 <- raw_tbl %>%
 world <- map_data("world") %>% 
   filter(region != "Antarctica")
 
-p <- ggplot() +
-  geom_polygon(data = world,
-               aes(x = long, y = lat, group = group),
-               colour = "#1b1d46", fill = "#1b1d46") +
-  geom_point(data = d1,
-             aes(x = splashdown_x, y = splashdown_y),
-             colour = "red", size = 8) +
-  coord_fixed(ratio = 1.3,
-              xlim = c(-175, -25),
-              ylim = c(-30, 35)) +
-  theme_void() +
-  theme(panel.background = element_rect(fill = "white", colour = "white"),
-        plot.background = element_rect(fill = "white", colour = "white"))
-
-p
-
-ggsave("img/splashdown.png", p, dpi = 320, width = 12, height = 6)
+for (i in 1:nrow(d1)) {
+  
+  p <- ggplot() +
+     geom_polygon(data = world,
+                  aes(x = long, y = lat, group = group),
+                  colour = "lightgrey", fill = "lightgrey") +
+     geom_point(data = filter(d1, row_number() == i),
+                aes(x = splashdown_x, y = splashdown_y),
+                colour = "red", size = 20) +
+     coord_fixed(ratio = 1.3,
+                 xlim = c(-175, -35),
+                 ylim = c(-30, 40)) +
+     theme_void() +
+     theme(panel.background = element_rect(fill = "#333333", colour = "#333333"),
+           plot.background = element_rect(fill = "#333333", colour = "#333333"))
+  
+  ggsave(paste0("img/splashdown_", i, ".png"), p, dpi = 320, width = 12, height = 6)
+  
+}
 
 
 # Create table ----
 
 d1 %>% 
   select(mission:launch_time, on_the_moon_days) %>% 
-  mutate(splashdown_map = "img/splashdown.png") %>% 
+  mutate(splashdown_map = paste0("img/splashdown_", 1:6, ".png")) %>% 
   gt() %>% 
   fmt_markdown(crew) %>% 
   gt_merge_stack(col1 = mission, col2 = crew,
