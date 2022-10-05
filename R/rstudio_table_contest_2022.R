@@ -103,8 +103,9 @@ d1 <- raw_tbl %>%
   dplyr::mutate(earth_moon = lubridate::interval(launch_dt, lunar_landing_dt) / days(1),
                 on_moon = lubridate::interval(lunar_landing_dt, lunar_takeoff_dt) / days(1),
                 moon_earth = lubridate::interval(lunar_takeoff_dt, splashdown_dt) / days(1)) |> 
+  dplyr::mutate(travel_days = earth_moon + moon_earth) |> 
   dplyr::group_by(mission) |> 
-  dplyr::mutate(mission_details = list(c(earth_moon, on_moon, moon_earth))) |> 
+  dplyr::mutate(mission_details = list(c(on_moon, travel_days))) |> 
   dplyr::ungroup()
 
 
@@ -237,8 +238,7 @@ d1 %>%
   #                  labels = c("To the moon", "On the moon", "Back to Earth"),
   #                  palette = c("lightblue", "darkgrey", "lightblue")) %>%
   # gt_plt_bar(column = to_the_moon_days) %>% 
-  gt_plt_bar_stack(column = mission_details, position = "fill", width = 80,
-                   palette = c("blue", "grey", "blue")) %>%
+  gt_plt_bar_stack(column = mission_details, position = "stack", width = 100) %>%
   # gt_plt_bar(column = mission_duration, color = "blue") %>%
   gt_img_rows(columns = splashdown_map, img_source = "local", height = 50) %>%
   gt_theme_dark()
