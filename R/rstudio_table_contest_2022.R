@@ -12,6 +12,7 @@ library(gtExtras)
 # Links ----
 
 # https://bjnnowak.netlify.app/2021/10/04/r-beautiful-tables-with-gt-and-gtextras/
+# https://en.wikipedia.org/wiki/List_of_Apollo_missions
 
 # Scraping the data from wikipedia ----
 
@@ -28,54 +29,129 @@ rm(tables, webpage, url)
 
 # Cleaning the dataset ----
 
-d1 <- raw_tbl %>% 
+d1 <- raw_tbl |> 
   # clean column names
-  janitor::clean_names() %>%
+  janitor::clean_names() |>
   # select columns
-  dplyr::select(-c(patch, launch_vehicle_b, remarks, refs)) %>%
-  # filter missions : missions with moon landings
-  dplyr::filter(mission %in% c("Apollo 11", "Apollo 12", "Apollo 14",  
-                               'Apollo 15', "Apollo 16", "Apollo 17")) %>% 
-  # split launch_date into date, time and site
-  tidyr::separate(launch_date,
-                  into = c("launch_date", "launch_time", "launch_site"),
-                  sep = "\n") %>% 
-  # remove launch site
-  dplyr::select(-launch_site) %>% 
-  # in crew column, remove strings between parentheses
-  dplyr::mutate(crew = stringr::str_replace(crew, " \\s*\\([^\\)]+\\)", "")) %>% 
-  # remove "Buzz" from crew for Apollo 11
-  dplyr::mutate(crew = stringr::str_remove(crew, "\"Buzz\"")) %>% 
+  dplyr::select(mission, crew, launch_date, duration) |> 
+  # filter missions
+  dplyr::filter(mission %in% c(paste("Apollo", c(11, 12, 14:17)))) |> 
+  # remove strings between parentheses in crew column
+  dplyr::mutate(crew = stringr::str_replace(crew, " \\s*\\([^\\)]+\\)", "")) |> 
+  # remove "Buzz" surname from Apollo 11 crew
+  dplyr::mutate(crew = stringr::str_remove(crew, "\"Buzz\"")) |> 
   # remove white spaces from crew column
-  dplyr::mutate(crew = stringr::str_replace_all(crew, fixed(" "), "")) %>% 
+  dplyr::mutate(crew = stringr::str_replace_all(crew, fixed(" "), "")) |> 
   # split crew string on capital letters
-  dplyr::mutate(crew = stringr::str_replace_all(crew, "([[:upper:]])", " \\1")) %>% 
+  dplyr::mutate(crew = stringr::str_replace_all(crew, "([[:upper:]])", " \\1")) |> 
   # remove white spaces from left and right of crew string
-  dplyr::mutate(crew = stringr::str_trim(crew)) %>% 
+  dplyr::mutate(crew = stringr::str_trim(crew)) |> 
   # split crew into commander, cm pilot and lm pilot
   dplyr::mutate(commander = stringr::word(crew, 1L, 2L),
                 cm_pilot = dplyr::case_when(mission == "Apollo 12" ~ stringr::word(crew, 3L, 6L),
                                             TRUE ~ stringr::word(crew, 3L, 4L)),
                 lm_pilot = dplyr::case_when(mission == "Apollo 12" ~ stringr::word(crew, 7L, 8L),
-                                            TRUE ~ stringr::word(crew, 5L, 6L))) %>% 
-  # regroup crew
-  dplyr::mutate(crew = paste(commander, lm_pilot, cm_pilot, sep = "<br>")) %>% 
+                                            TRUE ~ stringr::word(crew, 5L, 6L))) |> 
+  # regroup crew in one column
+  dplyr::mutate(crew = paste(commander, lm_pilot, cm_pilot, sep = "<br>")) |> 
   # select columns
-  dplyr::select(mission, crew, launch_date, launch_time, duration) %>% 
-  # add launch date-time
-  dplyr::mutate(launch_dt = c(lubridate::make_datetime(1969, 07, 16, 13, 32, 00),
+  dplyr::select(mission, crew, launch_date, duration) |> 
+  # split launch_date into date, time and site
+  tidyr::separate(launch_date,
+                  into = c("launch_date", "launch_time", "launch_site"),
+                  sep = "\n") |> 
+  # remove launch_site column
+  dplyr::select(-launch_site) |> 
+  # remove characters from duration
+  dplyr::mutate(duration = stringr::str_remove_all(duration, " [a-z]")) |> 
+  # remove "d" from duration for Apollo 17
+  dplyr::mutate(duration = stringr::str_remove(duration, "d")) |> 
+  # split duration into d, h, m, s
+  tidyr::separate(duration, into = c("d", "h", "m", "s"), sep = " ") |> 
+  # remove lead zeros from d, h, m, s
+  dplyr::mutate(across(d:s, ~ stringr::str_remove(., "^0"))) |> 
+  # regroup duration information
+  dplyr::mutate(mission_duration = paste0(d, "d ", h, "h ", m, "m ", s, "s")) |> 
+  # select columns
+  dplyr::select(mission, mission_duration, crew, launch_date, launch_time)
+
+d1 |> 
+  gt() |> 
+  gt_merge_stack(col1 = mission, col2 = mission_duration,
+                 palette = c("black", "grey")) |> 
+  fmt_markdown(crew) |> 
+  gt_merge_stack(col1 = launch_date, col2 = launch_time,
+                 palette = c("black", "grey")) 
+  
+
+|> 
+  # add earth_off, moon_on, moon_off & earth_on date-times
+  dplyr::mutate(earth_off = c(lubridate::make_datetime(1969, 07, 16, 13, 32, 00),
                               lubridate::make_datetime(1969, 11, 14, 16, 22, 00),
                               lubridate::make_datetime(1971, 01, 31, 21, 03, 00),
                               lubridate::make_datetime(1971, 07, 26, 13, 34, 00),
                               lubridate::make_datetime(1972, 04, 16, 17, 54, 00),
-                              lubridate::make_datetime(1972, 12, 07, 05, 33, 00))) %>% 
-  # add lunar landing date-time
-  dplyr::mutate(lunar_landing_dt = c(lubridate::make_datetime(1969, 07, 20, 20, 17, 40),
-                                  lubridate::make_datetime(1969, 11, 19, 06, 54, 35),
-                                  lubridate::make_datetime(1971, 02, 05, 09, 18, 11),
-                                  lubridate::make_datetime(1971, 07, 30, 22, 16, 29),
-                                  lubridate::make_datetime(1972, 04, 21, 02, 23, 35),
-                                  lubridate::make_datetime(1972, 12, 11, 19, 54, 58))) %>% 
+                              lubridate::make_datetime(1972, 12, 07, 05, 33, 00)),
+                moon_on = c(lubridate::make_datetime(1969, 07, 20, 20, 17, 40),
+                            lubridate::make_datetime(1969, 11, 19, 06, 54, 35),
+                            lubridate::make_datetime(1971, 02, 05, 09, 18, 11),
+                            lubridate::make_datetime(1971, 07, 30, 22, 16, 29),
+                            lubridate::make_datetime(1972, 04, 21, 02, 23, 35),
+                            lubridate::make_datetime(1972, 12, 11, 19, 54, 58)),
+                moon_off = c(lubridate::make_datetime(1969, 07, 21, 17, 54, 00),
+                             lubridate::make_datetime(1969, 11, 20, 14, 25, 47),
+                             lubridate::make_datetime(1971, 02, 06, 18, 48, 42),
+                             lubridate::make_datetime(1971, 08, 02, 17, 11, 23),
+                             lubridate::make_datetime(1972, 04, 24, 01, 25, 47),
+                             lubridate::make_datetime(1972, 12, 14, 22, 54, 37)),
+                earth_on = c(lubridate::make_datetime(1969, 07, 24, 16, 50, 35),
+                             lubridate::make_datetime(1969, 11, 24, 20, 58, 24),
+                             lubridate::make_datetime(1971, 02, 09, 21, 05, 00),
+                             lubridate::make_datetime(1971, 08, 07, 20, 45, 53),
+                             lubridate::make_datetime(1972, 04, 27, 19, 45, 05),
+                             lubridate::make_datetime(1972, 12, 19, 05, 33, 00))) |> 
+  # calculate mission duration in days & days spent on the moon
+  dplyr::mutate(mission_duration_days = lubridate::interval(earth_off, earth_on) / lubridate::days(1),
+                hours_on_the_moon = lubridate::interval(moon_on, moon_off) / lubridate::hours(1))
+
+d1 |> 
+  select(mission, mission_duration_days) |>
+  gt() |> 
+  fmt_duration(columns = mission_duration_days, input_units = "days")
+
+
+d1 |> 
+  select(mission, mission_duration_days, days_on_the_moon) |> 
+  gt() |> 
+  gt_plt_bar(column = mission_duration_days) |> 
+  gt_plt_bar(column = days_on_the_moon)
+
+
+|> 
+  # calculate intervals : earth -> moon, on moon & moon -> earth
+  dplyr::mutate(step1 = lubridate::interval(earth_off, moon_on) / lubridate::days(1),
+                step2 = lubridate::interval(moon_on, moon_off) / lubridate::days(1),
+                step3 = lubridate::interval(moon_off, earth_on) / lubridate::days(1),
+                total = lubridate::interval(earth_off, earth_on) / lubridate::days(1)) |> 
+  # calculate percent of time for each step of the mission
+  dplyr::mutate(step1_pct = 100 * step1 / total,
+                step2_pct = 100 * step2 / total,
+                step3_pct = 100 * step3 / total) |> 
+  # create list of step*_pct
+  dplyr::group_by(mission) |> 
+  dplyr::mutate(mission_steps = list(c(step1_pct, step2_pct, step3_pct))) |> 
+  dplyr::ungroup()
+  
+d1  
+
+d1 |> 
+  select(mission, mission_days) |> 
+  gt() |> 
+  gt_plt_bar_stack(column = mission_days, position = "stack", width = 150, labels = c("Moon", "Travel"))
+
+####
+
+
   # add lunar take-off date-time
   dplyr::mutate(lunar_takeoff_dt = c(lubridate::make_datetime(1969, 07, 21, 17, 54, 00),
                                      lubridate::make_datetime(1969, 11, 20, 14, 25, 47),
@@ -129,16 +205,7 @@ d1 <- raw_tbl %>%
 #   # select columns
 #   dplyr::select(mission:launch_time, commander, lm_pilot, cm_pilot,
 #                 cm_name:remarks) %>% 
-#   # remove characters from duration 
-#   dplyr::mutate(duration = stringr::str_remove_all(duration, " [a-z]")) %>% 
-#   # remove "d" from duration for Apollo 17
-#   dplyr::mutate(duration = stringr::str_remove(duration, "d")) %>% 
-#   # split duration into d, h, m, s
-#   tidyr::separate(duration, into = c("d", "h", "m", "s"), sep = " ") %>% 
-#   # remove lead zeros from d, h, m, s
-#   dplyr::mutate(across(d:s, ~ stringr::str_remove(., "^0"))) %>% 
-#   # set d, h, m, s as numeric variables
-#   dplyr::mutate(across(d:s, ~ as.numeric(.))) %>% 
+
 #   # calculate mission duration in days
 #   dplyr::mutate(duration_days = d + h/24 + m/1440 + s/86400) %>% 
 #   # select columns
