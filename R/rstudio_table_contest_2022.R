@@ -73,15 +73,76 @@ d1 <- raw_tbl |>
   # regroup duration information
   dplyr::mutate(mission_duration = paste0(d, "d ", h, "h ", m, "m ", s, "s")) |> 
   # select columns
-  dplyr::select(mission, mission_duration, crew, launch_date, launch_time)
+  dplyr::select(mission, mission_duration, crew, launch_date, launch_time) |> 
+  # add number of days spent on the moon
+  dplyr::mutate(moon_on = c(lubridate::make_datetime(1969, 07, 20, 20, 17, 40),
+                            lubridate::make_datetime(1969, 11, 19, 06, 54, 35),
+                            lubridate::make_datetime(1971, 02, 05, 09, 18, 11),
+                            lubridate::make_datetime(1971, 07, 30, 22, 16, 29),
+                            lubridate::make_datetime(1972, 04, 21, 02, 23, 35),
+                            lubridate::make_datetime(1972, 12, 11, 19, 54, 58)),
+                moon_off = c(lubridate::make_datetime(1969, 07, 21, 17, 54, 00),
+                             lubridate::make_datetime(1969, 11, 20, 14, 25, 47),
+                             lubridate::make_datetime(1971, 02, 06, 18, 48, 42),
+                             lubridate::make_datetime(1971, 08, 02, 17, 11, 23),
+                             lubridate::make_datetime(1972, 04, 24, 01, 25, 47),
+                             lubridate::make_datetime(1972, 12, 14, 22, 54, 37))) |> 
+  dplyr::mutate(hours_on_the_moon = round(lubridate::interval(moon_on, moon_off) / lubridate::hours(1), digits = 1)) |> 
+  # add numbers of lunar EVAs and mass of samples collected
+  dplyr::mutate(lunar_evas = c(1, 2, 2, 3, 3, 3),
+                samples_mass = c(21.55, 34.35, 42.80, 77, 95.71, 115)) |> 
+  # select columns
+  dplyr::select(mission:launch_time, hours_on_the_moon:samples_mass) |> 
+  # add splashdown date and time
+  dplyr::mutate(splashdown_date = c("July 24, 1969",
+                                    "November 24, 1969",
+                                    "February 9, 1971",
+                                    "August 7, 1971",
+                                    "April 27, 1972",
+                                    "December 19, 1972"),
+                splashdown_time = c("16:51 GMT",
+                                    "20:58 GMT",
+                                    "21:05 GMT",
+                                    "20:46 GMT",
+                                    "19:45 GMT",
+                                    "05:33 GMT")) |> 
+  # add paths to splashdown maps 
+  dplyr::mutate(splashdown_map = paste0("img/splashdown_", 1:6, ".png"))
+  
+  
 
 d1 |> 
   gt() |> 
   gt_merge_stack(col1 = mission, col2 = mission_duration,
-                 palette = c("black", "grey")) |> 
+                 palette = c("white", "grey"),
+                 font_size = c("22px", "18px"),
+                 font_weight = c("bold", "normal")) |> 
   fmt_markdown(crew) |> 
   gt_merge_stack(col1 = launch_date, col2 = launch_time,
-                 palette = c("black", "grey")) 
+                 palette = c("white", "grey"),
+                 font_size = c("20px", "16px"),
+                 font_weight = c("bold", "normal")) |> 
+  gt_plt_bar(column = hours_on_the_moon, keep_column = FALSE, width = 25,
+             scale_type = "number") |> 
+  gt_merge_stack(col1 = splashdown_date, col2 = splashdown_time,
+                 palette = c("white", "grey"),
+                 font_size = c("20px", "16px"),
+                 font_weight = c("bold", "normal")) |> 
+  gt_img_rows(columns = splashdown_map, img_source = "local", height = 100) |> 
+  gt_theme_dark() |> 
+  tab_header(title = "There and back again",
+             subtitle = "Apollo missions that landed on the moon") |> 
+  gt::cols_label(launch_date = "Launch",
+                 hours_on_the_moon = "Hours",
+                 lunar_evas = "EVAs",
+                 samples_mass = "Samples (kgs)",
+                 splashdown_date = "",
+                 splashdown_map = "") |> 
+  tab_spanner(label = "BACK TO EARTH",
+              columns = c(splashdown_date, splashdown_time, splashdown_map), replace = TRUE) |> 
+  tab_spanner(label = "ON THE MOON",
+              columns = c(hours_on_the_moon, lunar_evas, samples_mass), replace = TRUE)
+  
   
 
 |> 
@@ -115,7 +176,7 @@ d1 |>
                 hours_on_the_moon = lubridate::interval(moon_on, moon_off) / lubridate::hours(1))
 
 d1 |> 
-  select(mission, mission_duration_days) |>
+  select(mission, mission_duration_days, hours_on_the_moon) |>
   gt() |> 
   fmt_duration(columns = mission_duration_days, input_units = "days")
 
