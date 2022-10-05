@@ -107,7 +107,11 @@ d1 <- raw_tbl %>%
   dplyr::mutate(travel_days = earth_moon + moon_earth) |> 
   dplyr::group_by(mission) |> 
   dplyr::mutate(mission_details = list(c(earth_moon, earth_tkoff_lunar_tkoff))) |> 
-  dplyr::ungroup()
+  dplyr::ungroup() |> 
+  dplyr::mutate(step1_pct = (lubridate::interval(launch_dt, lunar_landing_dt) / days(1)) / (lubridate::interval(launch_dt, splashdown_dt) / days(1)),
+                step2_pct = lubridate::interval(lunar_landing_dt, lunar_takeoff_dt) / days(1) / (lubridate::interval(launch_dt, splashdown_dt) / days(1)),
+                step3_pct = lubridate::interval(lunar_landing_dt, splashdown_dt) / days(1) / (lubridate::interval(launch_dt, splashdown_dt) / days(1))) |> 
+  dplyr::mutate(check = step1_pct + step2_pct + step3_pct)
 
 
   # # add nb of days from the moon surface to splashdown
@@ -226,7 +230,7 @@ for (i in 1:nrow(d1)) {
 # Create table ----
 
 d1 %>% 
-  select(mission:launch_time, mission_duration, earth_moon, mission_details) %>% 
+  select(mission:launch_time, mission_duration) %>% 
   mutate(splashdown_map = paste0("img/splashdown_", 1:6, ".png")) %>% 
   gt() %>% 
   fmt_markdown(crew) %>% 
@@ -243,6 +247,7 @@ d1 %>%
   # gt_plt_bar(column = on_the_moon_days, width = 25) %>%
   # gt_plt_bar_stack(column = mission_details, position = "stack", width = 100) %>%
   # gt_plt_bar(column = mission_duration, color = "blue") %>%
+  gt_plt_bar(column = mission_duration, color = "grey") |> 
   gt_img_rows(columns = splashdown_map, img_source = "local", height = 50) %>%
   gt_theme_dark()
 
