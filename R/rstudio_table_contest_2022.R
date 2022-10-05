@@ -234,7 +234,7 @@ d1 %>%
                  palette = c("white", "grey")) %>% 
   gt_merge_stack(col1 = launch_date, col2 = launch_time,
                  palette = c("white", "grey")) %>% 
-  gt_plt_bullet(column = mission_duration, target = mission_details) |> 
+  # gt_plt_bullet(column = mission_duration, target = mission_details) |> 
   # gt_plt_bar_stack(column = mission_duration,
   #                  position = "stack",
   #                  labels = c("To the moon", "On the moon", "Back to Earth"),
