@@ -102,10 +102,11 @@ d1 <- raw_tbl %>%
   # add mission duration details
   dplyr::mutate(earth_moon = lubridate::interval(launch_dt, lunar_landing_dt) / days(1),
                 on_moon = lubridate::interval(lunar_landing_dt, lunar_takeoff_dt) / days(1),
-                moon_earth = lubridate::interval(lunar_takeoff_dt, splashdown_dt) / days(1)) |> 
+                moon_earth = lubridate::interval(lunar_takeoff_dt, splashdown_dt) / days(1),
+                earth_tkoff_lunar_tkoff = lubridate::interval(launch_dt, lunar_takeoff_dt) / days(1)) |> 
   dplyr::mutate(travel_days = earth_moon + moon_earth) |> 
   dplyr::group_by(mission) |> 
-  dplyr::mutate(mission_details = list(c(on_moon, travel_days))) |> 
+  dplyr::mutate(mission_details = list(c(earth_moon, earth_tkoff_lunar_tkoff))) |> 
   dplyr::ungroup()
 
 
@@ -225,7 +226,7 @@ for (i in 1:nrow(d1)) {
 # Create table ----
 
 d1 %>% 
-  select(mission:launch_time, mission_details) %>% 
+  select(mission:launch_time, mission_duration, earth_moon, mission_details) %>% 
   mutate(splashdown_map = paste0("img/splashdown_", 1:6, ".png")) %>% 
   gt() %>% 
   fmt_markdown(crew) %>% 
@@ -233,12 +234,14 @@ d1 %>%
                  palette = c("white", "grey")) %>% 
   gt_merge_stack(col1 = launch_date, col2 = launch_time,
                  palette = c("white", "grey")) %>% 
+  gt_plt_bullet(column = mission_duration, target = mission_details) |> 
   # gt_plt_bar_stack(column = mission_duration,
   #                  position = "stack",
   #                  labels = c("To the moon", "On the moon", "Back to Earth"),
   #                  palette = c("lightblue", "darkgrey", "lightblue")) %>%
-  # gt_plt_bar(column = to_the_moon_days) %>% 
-  gt_plt_bar_stack(column = mission_details, position = "stack", width = 100) %>%
+  # gt_plt_bar(column = travel_days, width = 25) %>%
+  # gt_plt_bar(column = on_the_moon_days, width = 25) %>%
+  # gt_plt_bar_stack(column = mission_details, position = "stack", width = 100) %>%
   # gt_plt_bar(column = mission_duration, color = "blue") %>%
   gt_img_rows(columns = splashdown_map, img_source = "local", height = 50) %>%
   gt_theme_dark()
