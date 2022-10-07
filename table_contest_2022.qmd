@@ -1,0 +1,127 @@
+---
+title: "apollo_missions"
+author: "Jonathan Kitt"
+format: html
+editor: visual
+---
+
+## Preparing the data
+
+The script used to prepare the data can be found [here](https://github.com/KittJonathan/RStudioTableContest/blob/main/R/rstudio_table_contest_2022_data_prep.R)/
+
+## Creating the table
+
+Here is the code used to create the table :
+
+```{r}
+# Load packages ----
+
+library(gt)
+library(gtExtras)
+library(tidyverse)
+
+# Import clean data ----
+
+d1 <- readr::read_csv("data/clean_data.csv")
+
+# Create table ----
+
+d1 |> 
+  # transform into {gt} table
+  gt::gt() |> 
+  # set theme to "dark"
+  gtExtras::gt_theme_dark() |> 
+  # display mission patches
+  gtExtras::gt_img_rows(columns = patch,
+                        img_source = "local",
+                        height = 75) |> 
+  # merge mission & mission_duration columns
+  gtExtras::gt_merge_stack(
+    col1 = mission, 
+    col2 = mission_duration,
+    palette = c("white", "grey"),
+    font_size = c("22px", "16px"),
+    font_weight = c("bold", "normal")) |> 
+  # read crew column as markdown
+  gt::fmt_markdown(crew) |> 
+  # add footnote for crew column
+  gt::tab_footnote(footnote = "in order : commander, lunar module pilot & command module pilot",
+                   locations = cells_column_labels(columns = crew)) |> 
+  # merge launch_date & launch_time columns
+  gtExtras::gt_merge_stack(col1 = launch_date,
+                           col2 = launch_time,
+                           palette = c("white", "grey"),
+                           font_size = c("18px", "16px"),
+                           font_weight = c("bold", "normal")) |> 
+  # create tab spanner for patch, mission, crew & launch columns
+  gt::tab_spanner(label = "MISSION",
+                  columns = c(patch, mission, crew, launch_date), replace = TRUE) |> 
+  # remove column labels for patch & mission + rename launch_date to launch
+  gt::cols_label(patch = "",
+                 mission = "",
+                 launch_date = "launch") |> 
+  # create tab spanner for hours_on_the_moon, lunar_evas & samples_mass columns
+  gt::tab_spanner(label = "ON THE MOON",
+                  columns = c(hours_on_the_moon, lunar_evas, samples_mass), replace = TRUE) |> 
+  # rename columns
+  gt::cols_label(hours_on_the_moon = "Hours",
+                 lunar_evas = "EVA",
+                 samples_mass = "Samples (kgs)") |> 
+  # add footnote for EVAs
+  gt::tab_footnote(footnote = "extravehicular activity",
+                   locations = cells_column_labels(columns = lunar_evas)) |> 
+  # merge splashdown_date & splashdown_time columns
+  gtExtras::gt_merge_stack(col1 = splashdown_date,
+                           col2 = splashdown_time,
+                           palette = c("white", "grey"),
+                           font_size = c("18px", "16px"),
+                           font_weight = c("bold", "normal")) |> 
+  # display splashdown maps
+  gtExtras::gt_img_rows(columns = splashdown_map,
+                        img_source = "local",
+                        height = 75) |> 
+  # create tab spanner for splashdown_date, & splashdown_map columns
+  gt::tab_spanner(label = "BACK TO EARTH",
+                  columns = c(splashdown_date, splashdown_map), replace = TRUE) |> 
+  # rename columns
+  gt::cols_label(splashdown_date = "Splashdown",
+                 splashdown_map = "Site") |> 
+  # add colours to numerical columns
+  gt::data_color(columns = hours_on_the_moon,
+                 colors = scales::col_numeric(
+                   palette = c("#333333", "lightgrey"),
+                   domain = c(0, 75))) |> 
+  gt::data_color(columns = lunar_evas,
+                 colors = scales::col_numeric(
+                   palette = c("#333333", "lightgrey"),
+                   domain = c(0, 3)))|> 
+  gt::data_color(columns = samples_mass,
+                 colors = scales::col_numeric(
+                   palette = c("#333333", "lightgrey"),
+                   domain = c(0, 115))) |> 
+  # align text in columns
+  gt::cols_align(align = "center") |> 
+  # change font in table cells
+  gt::opt_table_font(font = google_font(name = "Roboto Slab")) |> 
+  # set columns widths
+  gt::cols_width(mission ~ px(110),
+                 crew ~ px(155),
+                 launch_date ~ px(180),
+                 hours_on_the_moon ~ px(45),
+                 lunar_evas ~ px(45),
+                 samples_mass ~ px(45),
+                 splashdown_date ~ px(160),
+                 splashdown_map ~ px(140)) |> 
+  # add title and subtitle
+  gt::tab_header(title = "There and back again") |> 
+  # adjust title & subtitle font size
+  gt::tab_options(heading.title.font.size = 30) |> 
+  # change title & subtitle font
+  gt::tab_style(
+    locations = cells_title(groups = c("title")),
+    style = list(cell_text(
+      font = google_font(name = "Goldman")))) |> 
+  # add tab source note
+  gt::tab_source_note(source_note = "Source: Wikipedia | Created by: Jonathan Kitt") 
+
+```
