@@ -1,174 +1,179 @@
 # RStudio Table Contest
 # 2022
-# Last updated 2022-09-23
+# Create table
+# Last updated 2022-10-07
 
 # Load packages ----
 
-library(lubridate)
-library(tidyverse)
 library(gt)
 library(gtExtras)
+# library(lubridate)
+library(tidyverse)
 
-# Links ----
+# Import clean data ----
 
-# https://bjnnowak.netlify.app/2021/10/04/r-beautiful-tables-with-gt-and-gtextras/
-# https://en.wikipedia.org/wiki/List_of_Apollo_missions
+d1 <- readr::read_csv("data/clean_data.csv")
 
-# Scraping the data from wikipedia ----
-
-url <- "https://en.wikipedia.org/wiki/List_of_Apollo_missions"
-
-webpage <- rvest::read_html(url)
-
-tables <- rvest::html_nodes(webpage, "table.wikitable") %>%
-  rvest::html_table(header = TRUE, na.strings = c(NA, ""), convert = TRUE)
-
-raw_tbl <- tables[[6]]
-
-rm(tables, webpage, url)
-
-# Cleaning the dataset ----
-
-d1 <- raw_tbl |> 
-  # clean column names
-  janitor::clean_names() |>
-  # select columns
-  dplyr::select(mission, crew, launch_date, duration) |> 
-  # filter missions
-  dplyr::filter(mission %in% c(paste("Apollo", c(11, 12, 14:17)))) |> 
-  # remove strings between parentheses in crew column
-  dplyr::mutate(crew = stringr::str_replace(crew, " \\s*\\([^\\)]+\\)", "")) |> 
-  # remove "Buzz" surname from Apollo 11 crew
-  dplyr::mutate(crew = stringr::str_remove(crew, "\"Buzz\"")) |> 
-  # remove white spaces from crew column
-  dplyr::mutate(crew = stringr::str_replace_all(crew, fixed(" "), "")) |> 
-  # split crew string on capital letters
-  dplyr::mutate(crew = stringr::str_replace_all(crew, "([[:upper:]])", " \\1")) |> 
-  # remove white spaces from left and right of crew string
-  dplyr::mutate(crew = stringr::str_trim(crew)) |> 
-  # split crew into commander, cm pilot and lm pilot
-  dplyr::mutate(commander = stringr::word(crew, 1L, 2L),
-                cm_pilot = dplyr::case_when(mission == "Apollo 12" ~ stringr::word(crew, 3L, 6L),
-                                            TRUE ~ stringr::word(crew, 3L, 4L)),
-                lm_pilot = dplyr::case_when(mission == "Apollo 12" ~ stringr::word(crew, 7L, 8L),
-                                            TRUE ~ stringr::word(crew, 5L, 6L))) |> 
-  # regroup crew in one column
-  dplyr::mutate(crew = paste(commander, lm_pilot, cm_pilot, sep = "<br>")) |> 
-  # select columns
-  dplyr::select(mission, crew, launch_date, duration) |> 
-  # split launch_date into date, time and site
-  tidyr::separate(launch_date,
-                  into = c("launch_date", "launch_time", "launch_site"),
-                  sep = "\n") |> 
-  # remove launch_site column
-  dplyr::select(-launch_site) |> 
-  # remove characters from duration
-  dplyr::mutate(duration = stringr::str_remove_all(duration, " [a-z]")) |> 
-  # remove "d" from duration for Apollo 17
-  dplyr::mutate(duration = stringr::str_remove(duration, "d")) |> 
-  # split duration into d, h, m, s
-  tidyr::separate(duration, into = c("d", "h", "m", "s"), sep = " ") |> 
-  # remove lead zeros from d, h, m, s
-  dplyr::mutate(across(d:s, ~ stringr::str_remove(., "^0"))) |> 
-  # regroup duration information
-  dplyr::mutate(mission_duration = paste0(d, "d ", h, "h ", m, "m ", s, "s")) |> 
-  # select columns
-  dplyr::select(mission, mission_duration, crew, launch_date, launch_time) |> 
-  # add number of days spent on the moon
-  dplyr::mutate(moon_on = c(lubridate::make_datetime(1969, 07, 20, 20, 17, 40),
-                            lubridate::make_datetime(1969, 11, 19, 06, 54, 35),
-                            lubridate::make_datetime(1971, 02, 05, 09, 18, 11),
-                            lubridate::make_datetime(1971, 07, 30, 22, 16, 29),
-                            lubridate::make_datetime(1972, 04, 21, 02, 23, 35),
-                            lubridate::make_datetime(1972, 12, 11, 19, 54, 58)),
-                moon_off = c(lubridate::make_datetime(1969, 07, 21, 17, 54, 00),
-                             lubridate::make_datetime(1969, 11, 20, 14, 25, 47),
-                             lubridate::make_datetime(1971, 02, 06, 18, 48, 42),
-                             lubridate::make_datetime(1971, 08, 02, 17, 11, 23),
-                             lubridate::make_datetime(1972, 04, 24, 01, 25, 47),
-                             lubridate::make_datetime(1972, 12, 14, 22, 54, 37))) |> 
-  dplyr::mutate(hours_on_the_moon = round(lubridate::interval(moon_on, moon_off) / lubridate::hours(1), digits = 0)) |> 
-  # add numbers of lunar EVAs and mass of samples collected
-  dplyr::mutate(lunar_evas = c(1, 2, 2, 3, 3, 3),
-                samples_mass = round(c(21.55, 34.35, 42.80, 77, 95.71, 115), digits = 0)) |> 
-  # select columns
-  dplyr::select(mission:launch_time, hours_on_the_moon:samples_mass) |> 
-  # add splashdown date and time
-  dplyr::mutate(splashdown_date = c("July 24, 1969",
-                                    "November 24, 1969",
-                                    "February 9, 1971",
-                                    "August 7, 1971",
-                                    "April 27, 1972",
-                                    "December 19, 1972"),
-                splashdown_time = c("16:51 GMT",
-                                    "20:58 GMT",
-                                    "21:05 GMT",
-                                    "20:46 GMT",
-                                    "19:45 GMT",
-                                    "05:33 GMT")) |> 
-  # add paths to splashdown maps 
-  dplyr::mutate(splashdown_map = paste0("img/splashdown_", 1:6, ".png"))
-  
-  
+# Create table ----
 
 d1 |> 
-  gt() |> 
-  gt_merge_stack(col1 = mission, col2 = mission_duration,
-                 palette = c("white", "grey"),
-                 font_size = c("22px", "18px"),
-                 font_weight = c("bold", "normal")) |> 
-  fmt_markdown(crew) |> 
-  gt_merge_stack(col1 = launch_date, col2 = launch_time,
-                 palette = c("white", "grey"),
-                 font_size = c("20px", "16px"),
-                 font_weight = c("bold", "normal")) |> 
-  gt_merge_stack(col1 = splashdown_date, col2 = splashdown_time,
-                 palette = c("white", "grey"),
-                 font_size = c("20px", "16px"),
-                 font_weight = c("bold", "normal")) |> 
-  gt_img_rows(columns = splashdown_map, img_source = "local", height = 75) |> 
-  gt_theme_dark() |> 
-  tab_header(title = "There and back again",
-             subtitle = "Apollo missions that landed on the moon") |> 
-  gt::cols_label(launch_date = "Launch",
-                 hours_on_the_moon = "Hours",
-                 lunar_evas = "EVAs",
-                 samples_mass = "Samples (kgs)",
-                 splashdown_date = "Splashdown",
+  # transform into {gt} table
+  gt::gt() |> 
+  # set theme to "dark"
+  gtExtras::gt_theme_dark() |> 
+  # display mission patches
+  gtExtras::gt_img_rows(columns = patch,
+                        img_source = "local",
+                        height = 75) |> 
+  # merge mission & mission_duration columns
+  gtExtras::gt_merge_stack(
+    col1 = mission, 
+    col2 = mission_duration,
+    palette = c("white", "grey"),
+    font_size = c("22px", "16px"),
+    font_weight = c("bold", "normal")) |> 
+  # read crew column as markdown
+  gt::fmt_markdown(crew) |> 
+  # add footnote for crew column
+  gt::tab_footnote(footnote = "in order : commander, lunar module pilot & command module pilot",
+                   locations = cells_column_labels(columns = crew)) |> 
+  # merge launch_date & launch_time columns
+  gtExtras::gt_merge_stack(col1 = launch_date,
+                           col2 = launch_time,
+                           palette = c("white", "grey"),
+                           font_size = c("18px", "16px"),
+                           font_weight = c("bold", "normal")) |> 
+  # create tab spanner for patch, mission, crew & launch columns
+  gt::tab_spanner(label = "MISSION",
+                  columns = c(patch, mission, crew, launch_date), replace = TRUE) |> 
+  # remove column labels for patch & mission + rename launch_date to launch
+  gt::cols_label(patch = "",
+                 mission = "",
+                 launch_date = "launch") |> 
+  # create tab spanner for hours_on_the_moon, lunar_evas & samples_mass columns
+  gt::tab_spanner(label = "ON THE MOON",
+                  columns = c(hours_on_the_moon, lunar_evas, samples_mass), replace = TRUE) |> 
+  # rename columns
+  gt::cols_label(hours_on_the_moon = "Hours",
+                 lunar_evas = "EVA",
+                 samples_mass = "Samples (kgs)") |> 
+  # add footnote for EVAs
+  gt::tab_footnote(footnote = "extravehicular activity",
+                   locations = cells_column_labels(columns = lunar_evas)) |> 
+  # merge splashdown_date & splashdown_time columns
+  gtExtras::gt_merge_stack(col1 = splashdown_date,
+                           col2 = splashdown_time,
+                           palette = c("white", "grey"),
+                           font_size = c("18px", "16px"),
+                           font_weight = c("bold", "normal")) |> 
+  # display splashdown maps
+  gtExtras::gt_img_rows(columns = splashdown_map,
+                        img_source = "local",
+                        height = 75) |> 
+  # create tab spanner for splashdown_date, & splashdown_map columns
+  gt::tab_spanner(label = "BACK TO EARTH",
+                  columns = c(splashdown_date, splashdown_map), replace = TRUE) |> 
+  # rename columns
+  gt::cols_label(splashdown_date = "Splashdown",
                  splashdown_map = "Site") |> 
-  tab_spanner(label = "BACK TO EARTH",
-              columns = c(splashdown_date, splashdown_time, splashdown_map), replace = TRUE) |> 
-  tab_spanner(label = "ON THE MOON",
-              columns = c(hours_on_the_moon, lunar_evas, samples_mass), replace = TRUE) |> 
-  data_color(columns = hours_on_the_moon,
-             colors = scales::col_numeric(
-               palette = c("#333333", "lightgrey"),
-               domain = c(0, 75)
-             ))|> 
-  data_color(columns = lunar_evas,
-             colors = scales::col_numeric(
-               palette = c("#333333", "lightgrey"),
-               domain = c(0, 3)
-             ))|> 
-  data_color(columns = samples_mass,
-             colors = scales::col_numeric(
-               palette = c("#333333", "lightgrey"),
-               domain = c(0, 115)
-             )) |> 
-  cols_width(mission ~ px(150),
-             crew ~ px(150),
-             launch_time ~ px(175),
-             hours_on_the_moon ~ px(75),
-             lunar_evas ~ px(75),
-             samples_mass ~ px(75),
-             splashdown_date ~ px(175),
-             splashdown_map ~ px(175)) |> 
-  tab_footnote(footnote = "in order : commander, lunar module pilot & command module pilot",
-               locations = cells_column_labels(columns = crew)) |> 
-  tab_footnote(footnote = "extravehicular activity",
-               locations = cells_column_labels(columns = lunar_evas)) |> 
-  cols_align(align = "center") |> 
-  opt_table_font(font = google_font(name = "Roboto Slab")) |> 
+  # add colours to numerical columns
+  gt::data_color(columns = hours_on_the_moon,
+                 colors = scales::col_numeric(
+                   palette = c("#333333", "lightgrey"),
+                   domain = c(0, 75))) |> 
+  gt::data_color(columns = lunar_evas,
+                 colors = scales::col_numeric(
+                   palette = c("#333333", "lightgrey"),
+                   domain = c(0, 3)))|> 
+  gt::data_color(columns = samples_mass,
+                 colors = scales::col_numeric(
+                   palette = c("#333333", "lightgrey"),
+                   domain = c(0, 115))) |> 
+  # align text in columns
+  gt::cols_align(align = "center") |> 
+  # change font in table cells
+  gt::opt_table_font(font = google_font(name = "Roboto Slab")) |> 
+  # set columns widths
+  gt::cols_width(mission ~ px(110),
+                 crew ~ px(155),
+                 launch_date ~ px(180),
+                 hours_on_the_moon ~ px(45),
+                 lunar_evas ~ px(45),
+                 samples_mass ~ px(45),
+                 splashdown_date ~ px(160),
+                 splashdown_map ~ px(140)) |> 
+  # add title and subtitle
+  gt::tab_header(title = "There and back again") |> 
+  # adjust title & subtitle font size
+  gt::tab_options(heading.title.font.size = 30) |> 
+  # change title & subtitle font
+  gt::tab_style(
+    locations = cells_title(groups = c("title")),
+    style = list(cell_text(
+      font = google_font(name = "Goldman")))) |> 
+  # add tab source note
+  gt::tab_source_note(source_note = "Source: Wikipedia | Created by: Jonathan Kitt") 
+
+gtsave(tab, "tab.png")
+
+# d1 |> 
+#   gt() |> 
+#   gt_merge_stack(col1 = mission, col2 = mission_duration,
+#                  palette = c("white", "grey"),
+#                  font_size = c("22px", "18px"),
+#                  font_weight = c("bold", "normal")) |> 
+  # fmt_markdown(crew) |> 
+  # gt_merge_stack(col1 = launch_date, col2 = launch_time,
+  #                palette = c("white", "grey"),
+  #                font_size = c("20px", "16px"),
+  #                font_weight = c("bold", "normal")) |> 
+  # gt_merge_stack(col1 = splashdown_date, col2 = splashdown_time,
+  #                palette = c("white", "grey"),
+  #                font_size = c("20px", "16px"),
+  #                font_weight = c("bold", "normal")) |> 
+  # gt_img_rows(columns = splashdown_map, img_source = "local", height = 75) |> 
+  # gt_theme_dark() |> 
+  # tab_header(title = "There and back again",
+  #            subtitle = "Apollo missions that landed on the moon") |> 
+  # gt::cols_label(launch_date = "Launch",
+  #                hours_on_the_moon = "Hours",
+  #                lunar_evas = "EVAs",
+  #                samples_mass = "Samples (kgs)",
+  #                splashdown_date = "Splashdown",
+  #                splashdown_map = "Site") |> 
+  # tab_spanner(label = "BACK TO EARTH",
+  #             columns = c(splashdown_date, splashdown_time, splashdown_map), replace = TRUE) |> 
+  # tab_spanner(label = "ON THE MOON",
+  #             columns = c(hours_on_the_moon, lunar_evas, samples_mass), replace = TRUE) |> 
+  # data_color(columns = hours_on_the_moon,
+  #            colors = scales::col_numeric(
+  #              palette = c("#333333", "lightgrey"),
+  #              domain = c(0, 75)
+  #            ))|> 
+  # data_color(columns = lunar_evas,
+  #            colors = scales::col_numeric(
+  #              palette = c("#333333", "lightgrey"),
+  #              domain = c(0, 3)
+  #            ))|> 
+  # data_color(columns = samples_mass,
+  #            colors = scales::col_numeric(
+  #              palette = c("#333333", "lightgrey"),
+  #              domain = c(0, 115)
+  #            )) |> 
+  # cols_width(mission ~ px(150),
+  #            crew ~ px(150),
+  #            launch_time ~ px(175),
+  #            hours_on_the_moon ~ px(75),
+  #            lunar_evas ~ px(75),
+  #            samples_mass ~ px(75),
+  #            splashdown_date ~ px(175),
+  #            splashdown_map ~ px(175)) |> 
+  # tab_footnote(footnote = "in order : commander, lunar module pilot & command module pilot",
+  #              locations = cells_column_labels(columns = crew)) |> 
+  # tab_footnote(footnote = "extravehicular activity",
+  #              locations = cells_column_labels(columns = lunar_evas)) |> 
+  # cols_align(align = "center") |> 
+  # opt_table_font(font = google_font(name = "Roboto Slab")) |> 
   tab_options(heading.title.font.size = 35,
               heading.subtitle.font.size = 25) |> 
   tab_source_note(source_note = "Source: Wikipedia | Created by: Jonathan Kitt") |> 
@@ -369,28 +374,6 @@ d1 |>
 
 # Create splashdown maps ----
 
-world <- map_data("world") %>% 
-  filter(region != "Antarctica")
-
-for (i in 1:nrow(d1)) {
-  
-  p <- ggplot() +
-     geom_polygon(data = world,
-                  aes(x = long, y = lat, group = group),
-                  colour = "lightgrey", fill = "lightgrey") +
-     geom_point(data = filter(d1, row_number() == i),
-                aes(x = splashdown_x, y = splashdown_y),
-                colour = "red", size = 20) +
-     coord_fixed(ratio = 1.3,
-                 xlim = c(-175, -35),
-                 ylim = c(-30, 40)) +
-     theme_void() +
-     theme(panel.background = element_rect(fill = "#333333", colour = "#333333"),
-           plot.background = element_rect(fill = "#333333", colour = "#333333"))
-  
-  ggsave(paste0("img/splashdown_", i, ".png"), p, dpi = 320, width = 12, height = 6)
-  
-}
 
 
 # Create table ----

@@ -1,0 +1,7 @@
+patch,mission,mission_duration,crew,launch_date,launch_time,hours_on_the_moon,lunar_evas,samples_mass,splashdown_date,splashdown_time,splashdown_map
+img/apollo_11.png,Apollo 11,8d 3h 18m ,Neil Armstrong<br>Edwin Aldrin<br>Michael Collins,"July 16, 1969",13:32 GMT,22,1,22,"July 24, 1969",16:51 GMT,img/splashdown_apollo_11.png
+img/apollo_12.png,Apollo 12,10d 4h 36m ,Charles Conrad<br>Alan Bean<br>Richard F. Gordon Jr.,"November 14, 1969",16:22 GMT,32,2,34,"November 24, 1969",20:58 GMT,img/splashdown_apollo_12.png
+img/apollo_14.png,Apollo 14,9d 0h 1m ,Alan Shepard<br>Edgar Mitchell<br>Stuart Roosa,"January 31, 1971",21:03 GMT,34,2,43,"February 9, 1971",21:05 GMT,img/splashdown_apollo_14.png
+img/apollo_15.png,Apollo 15,12d 7h 11m ,David Scott<br>James Irwin<br>Alfred Worden,"July 26, 1971",13:34 GMT,67,3,77,"August 7, 1971",20:46 GMT,img/splashdown_apollo_15.png
+img/apollo_16.png,Apollo 16,11d 1h 51m ,John Young<br>Charles Duke<br>Ken Mattingly,"April 16, 1972",17:54 GMT,71,3,96,"April 27, 1972",19:45 GMT,img/splashdown_apollo_16.png
+img/apollo_17.png,Apollo 17,12d 13h 51m ,Eugene Cernan<br>Harrison Schmitt<br>Ronald Evans,"December 7, 1972",05:33 GMT,75,3,115,"December 19, 1972",19:25 GMT,img/splashdown_apollo_17.png
